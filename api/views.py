@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from api.serializers import MovieSerializer, RatingSerializer
 from api.models import Movie, Rating
 from rest_framework.decorators import action
+from django.contrib.auth.models import User
 
 class MovieViewSet(viewsets.ModelViewSet):
     queryset = Movie.objects.all()
@@ -14,11 +15,25 @@ class MovieViewSet(viewsets.ModelViewSet):
         if 'stars' in request.data:
 
             movie = Movie.objects.get(id=pk)
-            print('Movie Title:', movie.title)
-            print('Movie Description:', movie.description)
+            stars = request.data['stars']
+            # user = request.user
+            user = User.objects.get(id=1)
+            print('User:', user.username)
 
-            response = {'Message': 'It is working'}
-            return Response(response, status=status.HTTP_200_OK)
+            try:
+                rating = Rating.objects.get(user=user.id, movie=movie.id)
+                rating.stars = stars
+                rating.save()
+                serializer = RatingSerializer(rating, many=False)
+                response = {'Message': 'Rating updated', 'result': serializer.data}
+                return Response(response, status=status.HTTP_200_OK)
+            except:
+                rating = Rating.objects.create(user=user, movie=movie, stars=stars)
+                serializer = RatingSerializer(rating, many=False)
+                response = {'Message': 'Rating created', 'result': serializer.data}
+                return Response(response, status=status.HTTP_200_OK)
+
+
         else:
             response = {'Message': 'You need to provide stars'}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
